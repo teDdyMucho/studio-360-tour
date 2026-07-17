@@ -7,10 +7,13 @@ const MIN_FOV = 35
 const MAX_FOV = 82
 const DEFAULT_FOV = 74
 const DRAG_SPEED = 0.12
-// touch: a full-width swipe pans ~170°, so one thumb-flick turns you around
-const TOUCH_SWIPE_DEG = 170
+// touch: "natural tracking" like Street View / Matterport — degrees-per-pixel follows
+// the current fov over the viewport height, so the scene sticks to your finger and
+// slows down automatically when zoomed in. Slightly >1 so a swipe still covers ground.
+const TOUCH_TRACKING = 1.3
 const DAMP = 6
-const FLING_DAMP = 4 // deg/s decay rate of the fling after a touch release
+const FLING_DAMP = 3 // deg/s decay rate of the fling after a touch release
+const FLING_MAX = 280 // deg/s cap so a hard flick can't spin the room wildly
 const AUTOROTATE_SPEED = 3 // degrees / second
 
 // "walk" transition: a smooth glide forward into the next room, keeping your
@@ -137,11 +140,10 @@ export default function CameraRig({
       const dy = e.clientY - s.lastY
       s.lastX = e.clientX
       s.lastY = e.clientY
-      const speed =
+      const factor =
         e.pointerType === 'touch'
-          ? Math.max(DRAG_SPEED, TOUCH_SWIPE_DEG / dom.clientWidth)
-          : DRAG_SPEED
-      const factor = (camera.fov / DEFAULT_FOV) * speed
+          ? (camera.fov * TOUCH_TRACKING) / dom.clientHeight
+          : (camera.fov / DEFAULT_FOV) * DRAG_SPEED
       // "grab the world" on both axes: drag right -> look left, drag down -> look up
       s.targetLon += dx * factor
       s.targetLat = clamp(s.targetLat + dy * factor, -85, 85)
@@ -150,8 +152,8 @@ export default function CameraRig({
       const now = performance.now()
       const dt = Math.max((now - s.lastMoveT) / 1000, 1 / 240)
       s.lastMoveT = now
-      s.velLon = s.velLon * 0.7 + (dx * factor) / dt * 0.3
-      s.velLat = s.velLat * 0.7 + (dy * factor) / dt * 0.3
+      s.velLon = clamp(s.velLon * 0.7 + (dx * factor) / dt * 0.3, -FLING_MAX, FLING_MAX)
+      s.velLat = clamp(s.velLat * 0.7 + (dy * factor) / dt * 0.3, -FLING_MAX, FLING_MAX)
     }
 
     const onUp = (e) => {
