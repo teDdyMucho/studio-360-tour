@@ -43,39 +43,39 @@ export const scenes = [
     id: 'living',
     name: 'Living & Dining',
     panorama: './images/pano-living.jpg',
-    initialYaw: 0,
+    initialYaw: 180,
     north: 90,
     map: { x: 60, y: 54 },
     hotspots: [
       // bed at f~0.48; kitchen far-left f~0.10 — already point opposite ways
-      { target: 'bedroom', yaw: 84,  dist: 4.0, arriveYaw: 85, label: 'Bedroom' },
-      { target: 'kitchen', yaw: 308, dist: 3.8, arriveYaw: 15, label: 'Kitchen' },
+      { target: 'bedroom', yaw: 96,  dist: 4.0, arriveYaw: 95,  label: 'Bedroom' },
+      { target: 'kitchen', yaw: 232, dist: 3.8, arriveYaw: 165, label: 'Kitchen' },
     ],
   },
   {
     id: 'bedroom',
     name: 'Bedroom',
     panorama: './images/pano-bedroom.jpg',
-    initialYaw: 300,
-    north: 162,
+    initialYaw: 240,
+    north: 18,
     map: { x: 22, y: 47 },
     hotspots: [
       // both go through the same doorway -> separate them: dining (near) vs kitchen (far)
-      { target: 'living',  yaw: 4,  dist: 4.3, arriveYaw: 50, label: 'Living & Dining' },
-      { target: 'kitchen', yaw: 27, dist: 5.4, arriveYaw: 15, label: 'Kitchen' },
+      { target: 'living',  yaw: 176, dist: 4.3, arriveYaw: 130, label: 'Living & Dining' },
+      { target: 'kitchen', yaw: 153, dist: 5.4, arriveYaw: 165, label: 'Kitchen' },
     ],
   },
   {
     id: 'kitchen',
     name: 'Kitchen',
     panorama: './images/pano-kitchen.jpg',
-    initialYaw: 10,
-    north: 100,
+    initialYaw: 170,
+    north: 80,
     map: { x: 82, y: 63 },
     hotspots: [
       // both through the same opening (f~0.53) -> living near, bedroom far
-      { target: 'living',  yaw: 96,  dist: 3.8, arriveYaw: 50, label: 'Living & Dining' },
-      { target: 'bedroom', yaw: 108, dist: 5.2, arriveYaw: 85, label: 'Bedroom' },
+      { target: 'living',  yaw: 84, dist: 3.8, arriveYaw: 130, label: 'Living & Dining' },
+      { target: 'bedroom', yaw: 72, dist: 5.2, arriveYaw: 95,  label: 'Bedroom' },
     ],
   },
 ]

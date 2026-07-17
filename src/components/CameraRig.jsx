@@ -7,7 +7,10 @@ const MIN_FOV = 35
 const MAX_FOV = 82
 const DEFAULT_FOV = 74
 const DRAG_SPEED = 0.12
+// touch: a full-width swipe pans ~170°, so one thumb-flick turns you around
+const TOUCH_SWIPE_DEG = 170
 const DAMP = 6
+const FLING_DAMP = 4 // deg/s decay rate of the fling after a touch release
 const AUTOROTATE_SPEED = 3 // degrees / second
 
 // "walk" transition: a smooth glide forward into the next room, keeping your
@@ -52,6 +55,9 @@ export default function CameraRig({
     lastY: 0,
     pointers: new Map(),
     pinchDist: 0,
+    velLon: 0,
+    velLat: 0,
+    lastMoveT: 0,
     userInteracting: false,
     walking: false,
     walkElapsed: 0,
@@ -101,6 +107,9 @@ export default function CameraRig({
       s.userInteracting = true
       s.lastX = e.clientX
       s.lastY = e.clientY
+      s.velLon = 0 // grabbing the view stops any in-flight fling
+      s.velLat = 0
+      s.lastMoveT = performance.now()
       if (s.pointers.size === 2) {
         const pts = [...s.pointers.values()]
         s.pinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y)
@@ -128,9 +137,20 @@ export default function CameraRig({
       const dy = e.clientY - s.lastY
       s.lastX = e.clientX
       s.lastY = e.clientY
-      const factor = (camera.fov / DEFAULT_FOV) * DRAG_SPEED
+      const speed =
+        e.pointerType === 'touch'
+          ? Math.max(DRAG_SPEED, TOUCH_SWIPE_DEG / dom.clientWidth)
+          : DRAG_SPEED
+      const factor = (camera.fov / DEFAULT_FOV) * speed
       s.targetLon -= dx * factor
       s.targetLat = clamp(s.targetLat + dy * factor, -85, 85)
+
+      // track velocity (deg/s, smoothed) so releasing mid-swipe flings the view
+      const now = performance.now()
+      const dt = Math.max((now - s.lastMoveT) / 1000, 1 / 240)
+      s.lastMoveT = now
+      s.velLon = s.velLon * 0.7 + (-dx * factor) / dt * 0.3
+      s.velLat = s.velLat * 0.7 + (dy * factor) / dt * 0.3
     }
 
     const onUp = (e) => {
@@ -139,6 +159,11 @@ export default function CameraRig({
       if (s.pointers.size < 2) s.pinchDist = 0
       if (s.pointers.size === 0) {
         s.dragging = false
+        // fling only if the finger was still moving at release
+        if (performance.now() - s.lastMoveT > 90) {
+          s.velLon = 0
+          s.velLat = 0
+        }
         // allow auto-rotate to resume a moment after release
         setTimeout(() => (s.userInteracting = false), 2500)
       }
@@ -209,6 +234,15 @@ export default function CameraRig({
 
     if (autoRotate && !s.userInteracting) {
       s.targetLon += AUTOROTATE_SPEED * delta
+    }
+
+    // touch fling: keep coasting after release, decaying smoothly
+    if (!s.dragging && (Math.abs(s.velLon) > 0.5 || Math.abs(s.velLat) > 0.5)) {
+      s.targetLon += s.velLon * delta
+      s.targetLat = clamp(s.targetLat + s.velLat * delta, -85, 85)
+      const decay = Math.exp(-FLING_DAMP * delta)
+      s.velLon *= decay
+      s.velLat *= decay
     }
     s.lon = THREE.MathUtils.damp(s.lon, s.targetLon, DAMP, delta)
     s.lat = THREE.MathUtils.damp(s.lat, s.targetLat, DAMP, delta)

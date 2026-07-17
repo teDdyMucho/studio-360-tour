@@ -28,7 +28,8 @@ function roomGeometry() {
   const v = new THREE.Vector3()
   const uOf = (x, y, z) => {
     v.set(x, y, z).normalize()
-    let A = Math.atan2(v.z, -v.x)
+    // negated so the photo reads un-mirrored from inside the box (viewed on BackSide)
+    let A = Math.atan2(-v.z, -v.x)
     if (A < 0) A += Math.PI * 2
     return A / (Math.PI * 2)
   }
