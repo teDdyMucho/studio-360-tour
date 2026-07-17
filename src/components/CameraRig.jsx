@@ -142,14 +142,15 @@ export default function CameraRig({
           ? Math.max(DRAG_SPEED, TOUCH_SWIPE_DEG / dom.clientWidth)
           : DRAG_SPEED
       const factor = (camera.fov / DEFAULT_FOV) * speed
-      s.targetLon -= dx * factor
+      // "grab the world" on both axes: drag right -> look left, drag down -> look up
+      s.targetLon += dx * factor
       s.targetLat = clamp(s.targetLat + dy * factor, -85, 85)
 
       // track velocity (deg/s, smoothed) so releasing mid-swipe flings the view
       const now = performance.now()
       const dt = Math.max((now - s.lastMoveT) / 1000, 1 / 240)
       s.lastMoveT = now
-      s.velLon = s.velLon * 0.7 + (-dx * factor) / dt * 0.3
+      s.velLon = s.velLon * 0.7 + (dx * factor) / dt * 0.3
       s.velLat = s.velLat * 0.7 + (dy * factor) / dt * 0.3
     }
 
