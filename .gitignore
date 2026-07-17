@@ -1,0 +1,14 @@
+# dependencies & build output
+node_modules
+dist
+*.local
+.DS_Store
+
+# huge screen recordings + source PNGs (not needed in the repo)
+enhanced/
+
+# processing backups (the optimized panoramas live in public/images/)
+image-originals/
+
+# raw source images (already optimized into public/images/)
+WhatsApp_Image_*.jpeg

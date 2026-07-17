@@ -1,0 +1,431 @@
+:root {
+  --bg: #0d0f12;
+  --fg: #f5f6f8;
+  --accent: #4ea1ff;
+  --accent-glow: rgba(78, 161, 255, 0.65);
+  --panel: rgba(18, 20, 24, 0.72);
+  --panel-brd: rgba(255, 255, 255, 0.12);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.app { position: fixed; inset: 0; }
+
+.viewer-canvas { position: absolute; inset: 0; cursor: grab; touch-action: none; }
+.viewer-canvas:active { cursor: grabbing; }
+
+/* ---------- Top bar ---------- */
+.topbar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent);
+  pointer-events: none;
+  z-index: 10;
+}
+.brand { display: flex; flex-direction: column; line-height: 1.2; }
+.brand-title { font-size: 18px; font-weight: 700; letter-spacing: 0.2px; }
+.brand-sub { font-size: 12px; opacity: 0.7; letter-spacing: 1px; text-transform: uppercase; }
+.room-name {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 7px 16px;
+  background: var(--panel);
+  border: 1px solid var(--panel-brd);
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+}
+
+/* ---------- Room tabs ---------- */
+.room-tabs {
+  position: absolute;
+  top: 64px; left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+  background: var(--panel);
+  border: 1px solid var(--panel-brd);
+  padding: 6px;
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+}
+.room-tab {
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.room-tab:hover { opacity: 1; background: rgba(255, 255, 255, 0.08); }
+.room-tab.active { opacity: 1; background: var(--accent); color: #05203f; }
+
+/* ---------- Control buttons ---------- */
+.controls {
+  position: absolute;
+  right: 22px;
+  bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 10;
+}
+.ctrl-btn {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  border: 1px solid var(--panel-brd);
+  background: var(--panel);
+  color: var(--fg);
+  font-size: 20px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: all 0.18s ease;
+  display: flex; align-items: center; justify-content: center;
+}
+.ctrl-btn:hover { background: rgba(255, 255, 255, 0.14); transform: translateY(-1px); }
+.ctrl-btn.on { background: var(--accent); color: #05203f; }
+
+/* ---------- Hotspot hover label (rings themselves are 3D on the floor) ---------- */
+.hotspot-label {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid var(--panel-brd);
+  border-radius: 8px;
+  pointer-events: none;
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+.hotspot-label.show { animation: fadeHint 0.15s ease; }
+
+/* ---------- Floorplan map ---------- */
+.floorplan {
+  position: absolute;
+  left: 22px;
+  bottom: 26px;
+  z-index: 10;
+}
+.fp-controls { position: absolute; bottom: 100%; left: 0; margin-bottom: 8px; display: flex; gap: 6px; }
+.floorplan-toggle {
+  border: 1px solid var(--panel-brd);
+  background: var(--panel);
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  white-space: nowrap;
+}
+.fp-expand {
+  border: 1px solid var(--panel-brd);
+  background: var(--panel);
+  color: var(--fg);
+  font-size: 14px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+.fp-expand:hover, .floorplan-toggle:hover { background: rgba(255,255,255,0.14); }
+.floorplan-body {
+  position: relative;
+  width: min(320px, 42vw);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--panel-brd);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  background: #1a1d22;
+}
+.floorplan-img { display: block; width: 100%; height: auto; opacity: 0.92; }
+
+/* scan-point dots + "you are here" marker */
+.fp-dot {
+  position: absolute;
+  width: 13px; height: 13px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.fp-dot:hover { background: var(--accent); transform: translate(-50%, -50%) scale(1.2); }
+.fp-dot.current {
+  width: 20px; height: 20px;
+  background: #ff5a5f;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 4px rgba(255, 90, 95, 0.35), 0 0 16px rgba(255, 90, 95, 0.7);
+  z-index: 2;
+}
+.fp-pulse {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 20px; height: 20px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid #ff5a5f;
+  animation: fp-ripple 1.8s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes fp-ripple {
+  0%   { transform: translate(-50%, -50%) scale(1);   opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; }
+}
+.fp-label {
+  position: absolute;
+  bottom: 150%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.82);
+  padding: 3px 8px;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.fp-dot:hover .fp-label, .fp-dot.current .fp-label { opacity: 1; }
+
+/* expanded dollhouse-style floorplan */
+.fp-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  animation: fadeHint 0.2s ease;
+}
+.fp-modal-inner {
+  width: min(880px, 92vw);
+  background: #16181d;
+  border: 1px solid var(--panel-brd);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+}
+.fp-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--panel-brd);
+}
+.fp-modal-close {
+  border: 1px solid var(--panel-brd);
+  background: transparent;
+  color: var(--fg);
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.fp-modal-close:hover { background: rgba(255,255,255,0.12); }
+.fp-modal-plan { padding: 18px; }
+.fp-plan-wrap { position: relative; }
+.fp-plan-wrap img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+/* ---------- Hint ---------- */
+.hint {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12.5px;
+  opacity: 0.72;
+  background: var(--panel);
+  border: 1px solid var(--panel-brd);
+  padding: 8px 16px;
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+  z-index: 9;
+  pointer-events: none;
+  animation: fadeHint 0.6s ease;
+}
+@keyframes fadeHint { from { opacity: 0; } to { opacity: 0.72; } }
+
+/* ---------- Loader ---------- */
+.loader {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 16px;
+  background: rgba(13, 15, 18, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 20;
+  font-size: 13px;
+  letter-spacing: 1px;
+  opacity: 0.9;
+}
+.spinner {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Aim tool (place floor rings) ---------- */
+.crosshair {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 26px; height: 26px;
+  transform: translate(-50%, -50%);
+  z-index: 25;
+  pointer-events: none;
+}
+.crosshair::before, .crosshair::after {
+  content: '';
+  position: absolute;
+  background: #4ea1ff;
+  box-shadow: 0 0 6px rgba(78,161,255,0.9);
+}
+.crosshair::before { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%); }
+.crosshair::after  { top: 50%; left: 0; height: 2px; width: 100%; transform: translateY(-50%); }
+.aim-hud {
+  position: absolute;
+  top: 16px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+.aim-line {
+  background: rgba(0,0,0,0.85);
+  border: 1px solid var(--accent);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.aim-help {
+  background: rgba(0,0,0,0.7);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  max-width: 460px;
+  opacity: 0.9;
+}
+
+/* ---------- Ring placement editor ---------- */
+.edit-panel {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  width: min(460px, 92vw);
+  background: rgba(10, 12, 15, 0.92);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 14px 16px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.edit-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+.edit-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.edit-chip {
+  border: 1px solid var(--panel-brd);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--fg);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.edit-chip.active { background: var(--accent); color: #05203f; border-color: var(--accent); }
+.edit-check { color: #8dff5a; }
+.edit-chip.active .edit-check { color: #05203f; }
+.edit-help { font-size: 12px; opacity: 0.8; line-height: 1.4; margin-bottom: 10px; }
+.edit-values {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  opacity: 0.85;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+.edit-actions { display: flex; gap: 8px; }
+.edit-actions button {
+  border: 1px solid var(--panel-brd);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.edit-actions button:hover { background: rgba(255, 255, 255, 0.14); }
+
+/* ---------- Pose debug ---------- */
+.pose {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid var(--accent);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+.pose-hint { opacity: 0.6; margin-left: 10px; font-size: 11px; }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 640px) {
+  .brand-sub { display: none; }
+  .room-tabs { top: auto; bottom: 84px; }
+  .hint { display: none; }
+  .floorplan-body { width: 60vw; }
+  .controls { bottom: 84px; }
+}
